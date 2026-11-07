@@ -10,6 +10,7 @@ this file repeats their rules in the form an agent needs, and links to them for 
 |---|---|
 | Clean up a TV: debloat it, install the launcher, push a theme | Read [PROMPT.md](PROMPT.md) and follow it exactly, on the real TV. Use the tools in `tools/` and the launcher in `launcher/` rather than writing new ones; the only file you need to change is `launcher/app/src/main/res/values/config.xml`, or a theme's `config.json`, for this TV. Do not edit the repo's docs, tests or other code, and do not open issues or pull requests unless the person asks you to. |
 | Change this repo: a TV list, a fix, a translation, a theme, docs | Skip the next section and read on from [Repo map](#repo-map). |
+| Glass-clock home (this fork) | [skill](.claude/skills/glass-clock-home/SKILL.md) |
 
 ### Cleaning a TV: the rules that are not negotiable
 

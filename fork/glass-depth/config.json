@@ -1,0 +1,96 @@
+{
+  "big_clock": true,
+  "wallpaper": true,
+  "wallpaper_rotation_minutes": 30,
+  "wallpaper_order": "sequential",
+  "wallpaper_captions": false,
+  "wallpaper_true_color": true,
+  "wallpaper_dim": 0,
+  "background_color": "#05070C",
+  "dock_title": false,
+  "dock_glass": false,
+  "dock_opacity": 55,
+  "dock_even_padding": true,
+  "ambient_glow": false,
+  "app_glow": true,
+  "advanced_effects": true,
+  "focus_overshoot": false,
+  "wallpaper_drop": 0,
+  "icon_only_buttons": true,
+  "icon_only_inputs": true,
+  "weather": "app.tvweather",
+  "wallpaper_moods": {
+    "morning": [
+      "03-dawn.jpg",
+      "08-valley.jpg",
+      "10-sunrise.jpg",
+      "12-lake.jpg"
+    ],
+    "evening": [
+      "02-golden.jpg",
+      "11-sunset-fields.jpg",
+      "09-dusk-beach.jpg"
+    ],
+    "night": [
+      "01-night.jpg",
+      "09-dusk-beach.jpg"
+    ],
+    "cloudy": [
+      "05-cloudy.jpg",
+      "07-storm.jpg"
+    ],
+    "rain": [
+      "06-rain.jpg",
+      "07-storm.jpg"
+    ],
+    "fog": [
+      "04-fog.jpg"
+    ]
+  },
+  "single_row": true,
+  "dock_band_all": true,
+  "columns": 10,
+  "rows_below_dock": 0,
+  "focus_names": true,
+  "square_tiles": true,
+  "uniform_tiles": true,
+  "wallpaper_styles": {
+    "01-night.jpg": {
+      "clock_y": 0
+    },
+    "02-golden.jpg": {
+      "clock_y": 0
+    },
+    "03-dawn.jpg": {
+      "clock_y": 0
+    },
+    "04-fog.jpg": {
+      "clock_y": 0,
+      "text": "dark"
+    },
+    "05-cloudy.jpg": {
+      "clock_y": 0
+    },
+    "06-rain.jpg": {
+      "clock_y": 0
+    },
+    "07-storm.jpg": {
+      "clock_y": 0
+    },
+    "08-valley.jpg": {
+      "clock_y": 0
+    },
+    "09-dusk-beach.jpg": {
+      "clock_y": 0
+    },
+    "10-sunrise.jpg": {
+      "clock_y": 0
+    },
+    "11-sunset-fields.jpg": {
+      "clock_y": 0
+    },
+    "12-lake.jpg": {
+      "clock_y": 0
+    }
+  }
+}

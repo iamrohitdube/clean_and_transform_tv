@@ -13,7 +13,7 @@ build-and-install.sh, or the steps in addons/README.md; tools/theme.sh or theme.
 
 install on an installed add-on updates it (pm install -r). set writes the key into a theme folder of your own and
 pushes it with the platform's theme script, as themes/README.md describes; it never edits a folder in this checkout, so pointing
---theme at the project's themes/ or examples/ is refused before anything is written. set reads the value the way
+--theme at the project's themes/, examples/ or fork/ is refused before anything is written. set reads the value the way
 the key's own type in the Keys table needs - true or false for a bool, a JSON list, object or number where the
 table says so, the text itself for a string - and refuses one the launcher would ignore or a number outside the
 range the table states. A theme's config.json is hand-edited, so one that cannot be read, is not JSON, or is not a
@@ -253,7 +253,7 @@ def value_as(key, item, text):
 # Both folders hold config.json files this checkout ships and its tests hold to the launcher's readers
 # (tests/test_shipped_config_values.py): a theme author who pointed --theme at one would rewrite a tracked
 # file, and the edit would ride along in their next pull request.
-PROJECT_FOLDERS = ("themes", "examples")
+PROJECT_FOLDERS = ("themes", "examples", "fork")
 
 
 def reason(error):

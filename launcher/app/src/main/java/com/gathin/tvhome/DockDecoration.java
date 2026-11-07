@@ -125,6 +125,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             // A single row's tiles can run off the screen, so only its top limits the padding; its ends are clamped below.
             float room = (singleRow ? rect.top : Math.min(rect.top, Math.min(rect.left, parent.getWidth() - rect.right))) - density;
             float even = evenPaddingPx(inner, dockSize, cardWidth, room);
+            // square_tiles: a slim band that hugs the icons, as couch-tv's dock does; the zoomed icon still fits.
+            if (AppAdapter.squareTiles) even = Math.min(even, 16 * density);
             rect.inset(-even, -even);
             radius = radiusPx(radius, even);
         } else {
@@ -138,7 +140,8 @@ public class DockDecoration extends RecyclerView.ItemDecoration {
             rect.left = Math.max(rect.left, density);
             rect.right = Math.min(rect.right, parent.getWidth() - density);
         }
-        rect.bottom += namesRoom;
+        // square_tiles: no room for names inside the band; the focused app's name shows just under it instead.
+        if (!AppAdapter.squareTiles) rect.bottom += namesRoom;
         if (lightGlass && (rect.top != shaderTop || rect.bottom != shaderBottom)) {
             // The pills' glass (pill_bg: white, 18% fading to 8%), a little fainter over this much larger area.
             band.setShader(new LinearGradient(0, rect.top, 0, rect.bottom, 0x24FFFFFF, 0x0DFFFFFF,

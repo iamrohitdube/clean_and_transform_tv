@@ -138,6 +138,18 @@ final class Config {
     final boolean backOpensClock;
     /** The ambient glow takes a new app's colour in one frame instead of dipping and fading (config.xml / theme glow_snap). */
     final boolean glowSnap;
+    /** big_clock: a large see-through clock with the date above it across the middle of Home, in place of the header clock. */
+    final boolean bigClock;
+    /** wallpaper_drop: 0 to 30, how far the wallpaper is zoomed from its top edge, in percent, moving its skyline down. */
+    final int wallpaperDrop;
+    /** weather: the package of a weather add-on (docs: work/weather-addon) whose conditions Home shows; empty is off. */
+    final String weather;
+    /** focus_names: only the focused tile's name, under it, the dock and a single row included (room as always_show_names). */
+    final boolean focusNames;
+    /** square_tiles: square icon tiles (with uniform_tiles' look), the focus glass reaching down over the name. */
+    final boolean squareTiles;
+    /** wallpaper_styles: {"picture.jpg": {"clock_y": px at 1080p, "clock_x": "left", "clock_scale": 1.15, "text": "dark"}}, as JSON text. */
+    final String wallpaperStyles;
     /** App library as a round button in the top bar (config.xml library_button); needs app_library. */
     final boolean libraryButton;
     /** The App library pill after the last Home row; false hides it while libraryButton is on (show_library_pill). */
@@ -294,7 +306,7 @@ final class Config {
                    boolean keyFilter, boolean dockGlass, String glowStyle, boolean wallpaperCaptions,
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean homeIgnoreChannelKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean inputsCecStateOnly,
-                   int openOnStartNetworkWait, boolean openOnStartOnWake, boolean iconOnlyVpn, String clockFormat, boolean backOpensClock, boolean glowSnap) {
+                   int openOnStartNetworkWait, boolean openOnStartOnWake, boolean iconOnlyVpn, String clockFormat, boolean backOpensClock, boolean glowSnap, boolean bigClock, int wallpaperDrop, String weather, boolean focusNames, boolean squareTiles, String wallpaperStyles) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -346,6 +358,12 @@ final class Config {
         this.iconOnlyVpn = iconOnlyVpn;
         this.backOpensClock = backOpensClock;
         this.glowSnap = glowSnap;
+        this.bigClock = bigClock;
+        this.wallpaperDrop = wallpaperDrop;
+        this.weather = weather;
+        this.focusNames = focusNames;
+        this.squareTiles = squareTiles;
+        this.wallpaperStyles = wallpaperStyles;
         this.libraryButton = libraryButton;
         this.showLibraryPill = showLibraryPill;
         this.wifiLabelWidth = wifiLabelWidth;
@@ -478,6 +496,12 @@ final class Config {
         boolean iconOnlyVpn = res.getBoolean(R.bool.icon_only_vpn);
         boolean backOpensClock = res.getBoolean(R.bool.back_opens_clock);
         boolean glowSnap = res.getBoolean(R.bool.glow_snap);
+        boolean bigClock = res.getBoolean(R.bool.big_clock);
+        int wallpaperDrop = res.getInteger(R.integer.wallpaper_drop);
+        String weather = res.getString(R.string.weather).trim();
+        boolean focusNames = res.getBoolean(R.bool.focus_names);
+        boolean squareTiles = res.getBoolean(R.bool.square_tiles);
+        String wallpaperStyles = "";
         boolean libraryButton = res.getBoolean(R.bool.library_button);
         boolean showLibraryPill = res.getBoolean(R.bool.show_library_pill);
         int wifiLabelWidth = res.getInteger(R.integer.wifi_label_width);
@@ -567,7 +591,7 @@ final class Config {
             inputAction = string(json, "input_action", inputAction);
             inputSources = stringList(json, "input_sources", inputSources);
             inputUriScheme = string(json, "input_uri_scheme", inputUriScheme).trim();
-            columns = integer(json, "columns", columns, 1, 8);
+            columns = integer(json, "columns", columns, 1, 12);   // up to 12 for square_tiles' small icons
             rowsBelow = integer(json, "rows_below_dock", rowsBelow, 0, 3);
             animations = bool(json, "animations", animations);
             advancedEffects = bool(json, "advanced_effects", advancedEffects);
@@ -593,6 +617,13 @@ final class Config {
             iconOnlyVpn = bool(json, "icon_only_vpn", iconOnlyVpn);
             backOpensClock = bool(json, "back_opens_clock", backOpensClock);
             glowSnap = bool(json, "glow_snap", glowSnap);
+            bigClock = bool(json, "big_clock", bigClock);
+            wallpaperDrop = integer(json, "wallpaper_drop", wallpaperDrop, 0, 30);
+            weather = string(json, "weather", weather);
+            focusNames = bool(json, "focus_names", focusNames);
+            squareTiles = bool(json, "square_tiles", squareTiles);
+            JSONObject styles = json.optJSONObject("wallpaper_styles");
+            if (styles != null) wallpaperStyles = styles.toString();
             libraryButton = bool(json, "library_button", libraryButton);
             showLibraryPill = bool(json, "show_library_pill", showLibraryPill);
             wifiLabelWidth = integer(json, "wifi_label_width", wifiLabelWidth, 0, 300);
@@ -710,7 +741,7 @@ final class Config {
                 packageMap(appBanners), panelService, panelAction, panelExtra, coocaaSources, inputAction, inputSources, inputUriScheme, Math.max(1, columns),
                 Math.max(0, rowsBelow), animations, advancedEffects, shamsi, greetingName, moduleCards, reducedMotion, bootToLiveTv,
                 openOnStartChoice, dockTitle, dockRow, topMenu, launcherSettingsButton, reorderButton, showNetworkPill, showInputsPill,
-                iconOnlyButtons, iconOnlyInputs, libraryButton, showLibraryPill, wifiLabelWidth, alwaysShowNames, wallpaperTrueColor, focusOvershoot,
+                iconOnlyButtons, iconOnlyInputs, libraryButton, showLibraryPill, wifiLabelWidth, alwaysShowNames || focusNames, wallpaperTrueColor, focusOvershoot,
                 vpn, homeSettings, showStats, gameDay, library, librarySelection, libraryOkOpens, uniformTiles, background,
                 Math.max(0, Math.min(100, skyIntensity)), settingsKeycodes, settingsKeyPanel, restoreKeyServices, wallpaperEnabled, wallpaper,
                 wallpapers, rotationMinutes, wallpaperDim, dockOpacity, wallpaperOrder, applied, festival, inputKeycodes, appKeys, stockHomeRedirect,
@@ -720,7 +751,7 @@ final class Config {
                 consumeVolumeKeys, homeIgnoreChannelKeys, powerOnHome, homeLongPressHome, wifiStatusWarnings, topBarApps, showGreeting, headerWhite, clockWallpaper,
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly, inputsCecStateOnly,
-                Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap);
+                Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap, bigClock, Math.max(0, Math.min(30, wallpaperDrop)), weather, focusNames, squareTiles, wallpaperStyles);
     }
 
     /**
@@ -847,7 +878,9 @@ final class Config {
     /** {"night": ["03-moon-lake.jpg", ...], ...}: each mood's picture names; other keys and names are left out. */
     private static Map<String, Set<String>> moods(JSONObject o) {
         Map<String, Set<String>> groups = new HashMap<>();
-        for (String mood : WallpaperMood.ALL) {
+        List<String> keys = new ArrayList<>(Arrays.asList(WallpaperMood.ALL));
+        keys.addAll(Arrays.asList(WallpaperMood.WEATHER));
+        for (String mood : keys) {
             JSONArray names = o.optJSONArray(mood);
             if (names == null) continue;
             Set<String> group = new HashSet<>();

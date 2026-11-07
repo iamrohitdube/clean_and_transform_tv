@@ -29,11 +29,11 @@ against, so a value the launcher stops taking fails this test rather than leavin
 fallback.
 
 The same bounds are stated a second time, in the Keys table of themes/README.md, and that copy is the
-one a theme author reads: the cell gives `0 to 300` for `wifi_label_width`, `1 to 8` for `columns`,
+one a theme author reads: the cell gives `0 to 300` for `wifi_label_width`, `1 to 12` for `columns`,
 and tools/manage.py set refuses a value outside that cell before it writes anything
 (manage.number_in_range). Nothing compared the two, so a reader whose range moved in Config.java left
 the table telling authors a number the launcher would drop - `columns` becoming `1, 7` while the row
-says 1 to 8 is a theme whose sixth and seventh tiles vanish - and set would keep writing the value it
+says 1 to 12 is a theme whose sixth and seventh tiles vanish - and set would keep writing the value it
 was told was fine. The tests below hold each range cell to the bounds the reader is handed, and each
 integer() reader to a row that states its range.
 
@@ -263,7 +263,7 @@ class ShippedConfigValuesTest(unittest.TestCase):
 
     def test_a_value_in_a_theme_folder_below_a_list_folder_is_reported(self):
         # The shape of the 320 above, in the file examples/philips-google-tv-ta7/README.md tells the
-        # owner to edit: 42 columns is outside the 1 to 8 the launcher keeps, and a one-level glob
+        # owner to edit: 42 columns is outside the 1 to 12 the launcher keeps, and a one-level glob
         # never read the file it is in.
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -277,7 +277,7 @@ class ShippedConfigValuesTest(unittest.TestCase):
                              ["examples/acme-1/config.json", "examples/acme-1/theme/config.json"])
             reported = dict(problems(json.loads(nested.read_text(encoding="utf-8")), self.kinds))
             self.assertEqual(sorted(reported), ["columns"])
-            self.assertIn("outside 1 to 8", reported["columns"])
+            self.assertIn("outside 1 to 12", reported["columns"])
 
     def test_the_acer_example_keeps_the_network_name_it_documents(self):
         # The fix for the 320 above is to ask for a width the launcher keeps, not to stop asking: the
@@ -314,7 +314,7 @@ class ShippedConfigValuesTest(unittest.TestCase):
     def test_a_number_outside_the_range_is_reported(self):
         # integer() is `int i = ((Number) v).intValue(); return i < min || i > max ? fallback : i;`, so
         # both ends are refused, and so is a fraction on the wrong side of one.
-        for key, value in (("columns", 9), ("columns", 0), ("wifi_label_width", 320), ("wifi_label_width", -1),
+        for key, value in (("columns", 13), ("columns", 0), ("wifi_label_width", 320), ("wifi_label_width", -1),
                            ("dock_opacity", 29), ("sky_intensity", 101)):
             with self.subTest(key=key, value=value):
                 reported = dict(problems({key: value}, self.kinds))
@@ -360,7 +360,7 @@ class KeysTableRangesTest(unittest.TestCase):
                                 "fewer integer() readers found in Config.java than before")
         # The two the page's own examples lean on: columns decides how many tiles fit, and 0 is the one
         # wifi_label_width value MainActivity reads as "icon only", which is why the 320 above went wrong.
-        self.assertEqual(self.table.get("columns"), (1, 8))
+        self.assertEqual(self.table.get("columns"), (1, 12))
         self.assertEqual(self.table.get("wifi_label_width"), (0, 300))
         # One failure per drifted key, so a range that moved is named on the side that moved it.
         for key, why in range_problems(self.table, self.kinds):

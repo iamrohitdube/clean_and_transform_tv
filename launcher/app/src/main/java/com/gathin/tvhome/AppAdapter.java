@@ -29,6 +29,7 @@ import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.util.TypedValue;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -110,10 +111,16 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         if (innerWidthPx <= 0 || columns <= 0) return design;
         int cell = innerWidthPx / columns;
         int fit = (int) ((cell - 12 * density) / FOCUS_SCALE);
-        return Math.max(Math.round(80 * density), Math.min(design, fit));
+        return Math.max(Math.round((squareTiles ? 44 : 80) * density), Math.min(design, fit));
     }
 
+    /** square_tiles, set by MainActivity before the grid is sized: tiles as tall as they are wide. */
+    static boolean squareTiles;
+    /** square_tiles' focus zoom: small icons need a bigger step to show which one is chosen. */
+    static final float SQUARE_FOCUS_SCALE = 1.18f;
+
     static int tileHeightPx(int tileWidthPx) {
+        if (squareTiles) return tileWidthPx;
         return Math.round(tileWidthPx * DESIGN_H_DP / DESIGN_W_DP);
     }
 
@@ -188,6 +195,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private final boolean singleRow;
     /** config always_show_names: the alpha of an unfocused tile's name (0 hides it). */
     private final float restNameAlpha;
+    private final boolean focusNames;
     /** cinematic_home: only then does a launch record the last-opened app the shelf uses. */
     private final boolean cinematic;
     /** Dock order (config.xml dock_apps, or a theme's config.json). */
@@ -240,7 +248,9 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         this.dockTitle = cfg.dockTitle;
         this.dockRow = cfg.dockRow;
         this.singleRow = cfg.singleRow;
-        this.restNameAlpha = cfg.alwaysShowNames ? 0.75f : 0f;
+        // focus_names: the room for names is made (alwaysShowNames), but only the focused tile shows its name.
+        this.restNameAlpha = cfg.alwaysShowNames && !cfg.focusNames ? 0.75f : 0f;
+        this.focusNames = cfg.focusNames;
         this.cinematic = cfg.cinematicHome;
         this.launchActions = cfg.launchActions;
         this.iconTiles = new HashSet<>(Arrays.asList(ctx.getResources().getStringArray(R.array.icon_tiles)));
@@ -431,6 +441,12 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             int pad = Math.round(4 * density);
             v.setPadding(v.getPaddingLeft(), pad, v.getPaddingRight(), pad);
         }
+        if (squareTiles && singleRow) {
+            nameLp.width = Math.round(inner / (float) dockSize * 2.6f);
+            // under the zoomed icon, which reaches further down than the plain tile
+            // just under the slim band (16dp below the icons), clear of its edge
+            nameLp.topMargin = h + Math.round(26 * density);
+        }
         name.setLayoutParams(nameLp);
         // A sideways row would stretch a match_parent item across the whole screen: give it a grid column's width.
         if (singleRow) v.getLayoutParams().width = inner / dockSize;
@@ -438,7 +454,8 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             // tvOS-style tile: a large centred mark, no caption inside the card.
             View icon = v.findViewById(R.id.icon);
             FrameLayout.LayoutParams iconLp = (FrameLayout.LayoutParams) icon.getLayoutParams();
-            iconLp.width = iconLp.height = Math.round(h * ICON_SHARE);
+            // square_tiles: the icon fills the whole tile (FullBleedIcon), cropped by the tile's rounded corners.
+            iconLp.width = iconLp.height = squareTiles ? h : Math.round(h * ICON_SHARE);
             iconLp.bottomMargin = 0;
             icon.setLayoutParams(iconLp);
         } else if (h < Math.round(DESIGN_H_DP * density)) {
@@ -451,6 +468,19 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
             icon.setLayoutParams(iconLp);
             View label = v.findViewById(R.id.label);
             label.setPadding(label.getPaddingLeft(), label.getPaddingTop(), label.getPaddingRight(), Math.round(4f * density));
+        }
+        if (focusNames) {
+            // The focused name in the big clock's date and weather font (Inter), a touch larger for the sofa.
+            TextView nameView = v.findViewById(R.id.name);
+            try {
+                nameView.setTypeface(ctx.getResources().getFont(R.font.inter_medium));
+            } catch (RuntimeException ignored) {
+                // the launcher's own font is fine
+            }
+            nameView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16);
+            nameView.setLetterSpacing(-0.01f);
+            // readable over the picture, now that the name sits outside the band
+            nameView.setShadowLayer(10 * density, 0, 1.5f * density, 0xB3000000);
         }
         return new Holder(v, listener, animations, advancedEffects, reducedMotion, restNameAlpha, focusOvershoot);
     }
@@ -478,7 +508,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         // The dock has no labels, unless always_show_names asks for them (DockDecoration then makes room in the band).
         // In a single row every tile is the dock's kind: the big title above names it.
         boolean dockKind = DockSlots.inDockRow(dockRow, singleRow, position, dockSize);
-        h.name.setVisibility(dockKind && restNameAlpha == 0f ? View.INVISIBLE : View.VISIBLE);
+        h.name.setVisibility(dockKind && restNameAlpha == 0f && !focusNames ? View.INVISIBLE : View.VISIBLE);
         h.inDock = dockKind;
         boolean focused = h.card.isFocused();   // a rebind after reload() can hit the focused tile
         h.name.setAlpha(focused ? 1f : restNameAlpha);
@@ -503,7 +533,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
         } else {
             h.banner.setImageDrawable(null);
             h.banner.setVisibility(View.GONE);
-            h.icon.setImageDrawable(e.icon);
+            h.icon.setImageDrawable(squareTiles ? FullBleedIcon.of(e.icon) : e.icon);
             h.icon.setVisibility(View.VISIBLE);
             h.label.setText(e.label);
             h.label.setVisibility(uniformTiles ? View.GONE : View.VISIBLE);
@@ -676,6 +706,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     }
 
     float focusScale() {
+        if (animations && squareTiles) return SQUARE_FOCUS_SCALE;
         return !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
     }
 
@@ -953,7 +984,7 @@ public class AppAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
                 view.animate().cancel();
                 banner.animate().cancel();
                 name.animate().cancel();
-                float scale = !animations ? 1f : advancedEffects ? 1.12f : 1.10f;
+                float scale = !animations ? 1f : squareTiles ? SQUARE_FOCUS_SCALE : advancedEffects ? 1.12f : 1.10f;
                 float s = focused ? scale : 1f;
                 if (!animations) {
                     view.setScaleX(1f);

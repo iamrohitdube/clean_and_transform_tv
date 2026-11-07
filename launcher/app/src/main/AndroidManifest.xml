@@ -65,6 +65,8 @@
         <package android:name="com.xiaomi.mitv.settings" />
         <package android:name="com.tcl.settings" />
         <package android:name="com.amazon.tv.launcher" />
+        <!-- weather: the weather add-on has no activity of its own, so it must be named to be visible. -->
+        <package android:name="app.tvweather" />
         <!-- Coocaa OS sources for the Inputs menu (coocaa_sources); see CoocaaSources. -->
         <provider android:authorities="com.skyworth.tv.provider" />
         <provider android:authorities="com.skyworth.tv.sdk.provider" />
@@ -108,6 +110,12 @@
 
         <activity
             android:name=".LauncherSettingsActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:screenOrientation="landscape" />
+        <!-- big_clock's wallpaper button: the theme's pictures as thumbnails, and Automatic. -->
+        <activity
+            android:name=".WallpaperPickerActivity"
             android:exported="false"
             android:excludeFromRecents="true"
             android:screenOrientation="landscape" />

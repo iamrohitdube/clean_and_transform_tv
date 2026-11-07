@@ -61,6 +61,19 @@ final class WallpaperPlayer {
     private final String latitude, longitude;
     private LocalDate sunDay;
     private int[] sun;
+    /** big_clock: also load each picture's cut-out and glass (WallpaperDepth) and hand them to Home. */
+    private final boolean depth;
+    private Bitmap currentFg, currentGlass;
+    private String currentPicture;
+    private DepthListener depthListener;
+    /** The weather add-on's condition ("cloudy", "rain"...), or null: picks a weather group in daylight. */
+    private String weather;
+
+    /** Home's big clock, told the shown picture's cut-out and glass (either may be null). */
+    interface DepthListener {
+        /** picture: the shown picture's file name (for its wallpaper_styles entry), or null when none is shown. */
+        void onDepth(Bitmap foreground, Bitmap glass, String picture);
+    }
 
     WallpaperPlayer(Context context, FrameLayout root, Config config) {
         this.root = root;
@@ -71,6 +84,7 @@ final class WallpaperPlayer {
         // The dim is painted into the picture (decode), so no full-screen shade layer is drawn on every frame.
         dimColor = config.wallpaperDim > 0 ? (config.wallpaperDim * 255 / 100) << 24 : 0;
         order = config.wallpaperOrder;
+        depth = config.bigClock;
         preferences = context.getSharedPreferences("wallpaper_rotation", Context.MODE_PRIVATE);
         moods = config.wallpaperMoods;
         latitude = moods.isEmpty() ? "" : context.getString(R.string.latitude);
@@ -88,6 +102,7 @@ final class WallpaperPlayer {
         image = new ImageView(context);
         image.setScaleType(ImageView.ScaleType.CENTER_CROP);
         image.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        WallpaperDepth.drop(image, config.wallpaperDrop, width);
         names = config.wallpaperCaptions && config.wallpaperEnabled && !files.isEmpty()
                 ? WallpaperCaptions.read(files.get(0).getParentFile()) : Collections.emptyMap();
         caption = names.isEmpty() ? null : makeCaption(context, root);
@@ -112,6 +127,7 @@ final class WallpaperPlayer {
             Bitmap bitmap = decode(first);
             if (bitmap != null) {
                 show(bitmap);
+                if (depth) showDepth(WallpaperDepth.foreground(first, width, height, dimColor), WallpaperDepth.glass(first), first.getName());
                 // The picture covers the whole screen: the root's plain colour under it is overdraw.
                 root.setBackground(null);
                 displayed = first.getName();
@@ -126,6 +142,13 @@ final class WallpaperPlayer {
             playable = playable();
             first = WallpaperRotation.pick(playable, previous, order, random);
         }
+    }
+
+    /** A new condition from the weather add-on: a picture outside its group is replaced at once. */
+    void setWeather(String condition) {
+        if (condition == null ? weather == null : condition.equals(weather)) return;
+        weather = condition;
+        update();
     }
 
     void start() {
@@ -146,6 +169,15 @@ final class WallpaperPlayer {
         current = null;
         displayed = "";
         root.setBackgroundColor(backgroundColor);
+        currentFg = null;
+        currentGlass = null;
+        if (depthListener != null) depthListener.onDepth(null, null, null);
+    }
+
+    /** Hands the shown picture's cut-out and glass to Home now, and again whenever the picture changes. */
+    void setDepthListener(DepthListener listener) {
+        depthListener = listener;
+        if (listener != null) listener.onDepth(currentFg, currentGlass, currentPicture);
     }
 
     /** The pictures the rotation picks from now: wallpaper_moods' group for the time of day, or the whole collection. */
@@ -156,7 +188,8 @@ final class WallpaperPlayer {
             sunDay = now.toLocalDate();
             sun = WallpaperMood.sun(sunDay, latitude, longitude, ZoneId.systemDefault());
         }
-        return WallpaperMood.select(files, moods, WallpaperMood.timeOfDay(now.getHour() * 60 + now.getMinute(), sun[0], sun[1]));
+        String timeOfDay = WallpaperMood.timeOfDay(now.getHour() * 60 + now.getMinute(), sun[0], sun[1]);
+        return WallpaperMood.select(files, moods, WallpaperMood.pick(timeOfDay, weather, moods));
     }
 
     void close() {
@@ -180,10 +213,14 @@ final class WallpaperPlayer {
         loading = true;
         decoder.execute(() -> {
             Bitmap bitmap = decode(next);
+            Bitmap fg = depth && bitmap != null ? WallpaperDepth.foreground(next, width, height, dimColor) : null;
+            Bitmap glass = depth && bitmap != null ? WallpaperDepth.glass(next) : null;
             root.post(() -> {
                 loading = false;
                 if (closed || !active) {
                     if (bitmap != null) bitmap.recycle();
+                    if (fg != null) fg.recycle();
+                    if (glass != null) glass.recycle();
                     return;
                 }
                 if (bitmap == null) {
@@ -193,6 +230,7 @@ final class WallpaperPlayer {
                     return;
                 }
                 show(bitmap);
+                if (depth) showDepth(fg, glass, next.getName());
                 displayed = next.getName();
                 showCaption(true);
                 if (!displayed.equals(previous) || changed == 0) {
@@ -267,6 +305,17 @@ final class WallpaperPlayer {
         root.setBackground(null);
         image.setImageBitmap(bitmap);
         if (old != null && old != bitmap) image.postDelayed(old::recycle, 500);
+    }
+
+    /** Like show(): the new cut-out and glass go to Home, and the old ones are released a moment later. */
+    private void showDepth(Bitmap fg, Bitmap glass, String picture) {
+        currentPicture = picture;
+        Bitmap oldFg = currentFg, oldGlass = currentGlass;
+        currentFg = fg;
+        currentGlass = glass;
+        if (depthListener != null) depthListener.onDepth(fg, glass, picture);
+        if (oldFg != null && oldFg != fg) image.postDelayed(oldFg::recycle, 500);
+        if (oldGlass != null && oldGlass != glass) image.postDelayed(oldGlass::recycle, 500);
     }
 
     private Bitmap decode(File file) {

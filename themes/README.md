@@ -14,7 +14,7 @@ powershell -ExecutionPolicy Bypass -File tools\theme.ps1 -TvHost 192.168.1.50 th
 
 `tools/venv/bin/python -I tools/manage.py list themes` and `list switches` list them from this file, `show <name>` gives one with its
 screenshot, and `manage.py set <switch> <value> --theme <your folder>` writes a key into a theme folder of your own
-and pushes it with `theme.sh` (`theme.ps1` on Windows). The folder has to be outside this checkout: one under `themes/` or `examples/` is
+and pushes it with `theme.sh` (`theme.ps1` on Windows). The folder has to be outside this checkout: one under `themes/`, `examples/` or `fork/` is
 refused (copy a theme first), a `config.json` it cannot read is named before anything is written or pushed, and a
 folder that is not there is refused too rather than made - an empty folder of your own is fine, `set` starts the
 `config.json` in it. Pushing replaces the theme on the TV and empties the pictures it pushed before, so a mistyped
@@ -98,7 +98,7 @@ A new key needs one there in the same pull request.
 | `input_action` | string | Action sent with an HDMI/AV row's channel URI when nothing handles the standard `VIEW` (XGIMI: `com.xgimi.action.hdmiPlayer`). Only a handler-less set gets here; any app that claims the channel MIME type takes the row instead, so check with `query-activities` ([#805](https://github.com/Gathin23/cleanyourtv/issues/805)). Written as `package/.Activity` it names the vendor's own source picker, which every row starts first (Redmi X65, MiTV-NSOP0: `com.xiaomi.mitv.tvplayer/.ExternalSourceActivity`) |
 | `input_uri_scheme` | string | Scheme an HDMI/AV row's passthrough URI is sent with instead of `content://`, with no MIME type (YaOS: `live-tv`, which its source player answers) |
 | `input_sources` | list | Vendor source numbers for the Inputs menu, `HW<n>=<number>` by the input id's last part; a mapped input opens by sending `input_action` with the number as the int extra `input`, and `HW<n>=-` leaves a port the set doesn't have out of the menu. Xiaomi/Redmi China firmware: [redmi-mitv-mftp0](../examples/redmi-mitv-mftp0/) |
-| `columns` | 1 to 8 | Tiles per row; tiles shrink to fit from 5 up |
+| `columns` | 1 to 12 | Tiles per row; tiles shrink to fit from 5 up |
 | `rows_below_dock` | 0 to 3 | Grid rows left visible under the dock; tiles shrink if the dock, its title and that many rows would not fit the screen height |
 | `dock_title` | bool | The focused dock app's name in large type above the dock (`true`); `false` keeps only the glow |
 | `dock_row` | bool | The dock as its own row with a band (`true`); `false` makes the dock apps the first tiles of one plain grid |
@@ -181,6 +181,12 @@ A new key needs one there in the same pull request.
 | `inputs_connected_only` | bool | The Inputs list shows only HDMI ports and CEC devices that report connected; empty ports, the AV jacks and devices asleep in standby fold behind a "More inputs" row that expands them. Some TVs (TCL) report an empty HDMI port as connected-standby, the same state a sleeping device has, so a device in standby is folded too. An HDMI row whose state the TV cannot be trusted with stays (`false` by default) |
 | `inputs_cec_state_only` | bool | Only CEC device rows in the Inputs list show a connection state ("Steam Deck · HDMI 1", Connected); bare HDMI ports show none. For TVs that put port states on the wrong port: TCL UnionTV (Android 9) reports its empty HDMI 1 as connected and a device on HDMI 2 nowhere, while its CEC device list stays right. A device without CEC shows no state (`false` by default) |
 | `clock_format` | `12`, `24` or `system` | The launcher's clocks (Home and the clock screensaver) in 12- or 24-hour time whatever the TV is set to; `system` (the default) follows the TV. Launcher settings' Clock row sets it too |
+| `big_clock` | bool | A big glass clock in the middle of Home with the date above it (couch-tv's Night look); the weather, the date and the round buttons share one line at the top, and a wallpaper picker button joins them. Each picture's `-fg.webp` cut-out is drawn over the clock and its `-glass.jpg` fills the digits. Off by default |
+| `wallpaper_styles` | object | With `big_clock`, per picture: `{"name.jpg": {"clock_y": px at 1080p, "clock_x": "left", "clock_scale": 1.15, "text": "dark"}}` |
+| `wallpaper_drop` | 0 to 30 | Zoom the wallpaper from its top edge by this many percent, moving its skyline down; the cut-out and the glass follow (0 by default) |
+| `weather` | package | A weather add-on such as `app.tvweather` (addons/tv-weather): its reading at the top left, and its condition picks `wallpaper_moods`' `cloudy`, `rain` or `fog` group in daylight. Empty (off) by default |
+| `square_tiles` | bool | Square, full-bleed icon tiles (use with `uniform_tiles`); `columns` may go up to 12. Off by default |
+| `focus_names` | bool | Only the focused tile's name, under it, in the dock and a single row too. Off by default |
 | `race_calendar` | list of races | F1 race-weekend mode: from 12 hours before a weekend's first session until 4 hours after the race starts, a panel under the clock shows the next session with a countdown (or the live one) and the weekend's session times in the TV's time zone. Write it with `tools/venv/bin/python -I tools/race_calendar.py <theme folder>`, which fetches the season from the free Jolpica API; the launcher itself never goes online |
 | `home_idle_clock_minutes` | 0 to 1440 | Minutes Home may sit untouched before it shows the clock screensaver (a thin clock and date drifting over a slow glow, as the system "Clock" screensaver does). Any key returns to Home. It starts only from Home, never over Live TV or an app; 0 is off (default) |
 | `back_opens_clock` | bool | Back on the Home screen opens the clock screensaver (the same screen as `home_idle_clock_minutes`) instead of doing nothing. Back inside apps, Settings and the App library is unchanged; any key leaves the clock for Home. `false` by default |

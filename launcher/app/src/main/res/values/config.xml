@@ -508,6 +508,25 @@
          press, which a slow GPU such as the Mali-G52 cannot keep up with. Can also be set with "glow_snap" in a
          theme's config.json. -->
     <bool name="glow_snap">false</bool>
+
+    <!-- A large see-through clock across the middle of Home with the date above it, fading towards the bottom so the
+         wallpaper shows through, in place of the header clock (the buttons on the right stay). Off by default; a theme can
+         set it with "big_clock". -->
+    <bool name="big_clock">false</bool>
+    <!-- Zoom the wallpaper from its top edge by this many percent (0 to 30), moving its skyline down the screen; with
+         big_clock the cut-out and the glass follow it. 0 (the default) leaves the picture as it is. Theme key "wallpaper_drop". -->
+    <integer name="wallpaper_drop">0</integer>
+    <!-- The package of a weather add-on: Home shows its temperature and condition at the top left, and a theme's
+         wallpaper_moods can carry "cloudy", "rain" and "fog" groups that it switches to in daylight. The launcher only
+         reads what the add-on publishes and stays offline. Empty (the default) is off. Theme key "weather". -->
+    <string name="weather" translatable="false"></string>
+    <!-- Only the focused tile's name, under it, in the dock and a single row too, with room made for it as with
+         always_show_names. Off by default; theme key "focus_names". -->
+    <bool name="focus_names">false</bool>
+    <!-- Square icon tiles (use with uniform_tiles), each app's icon drawn edge to edge, so more apps fit across; with
+         single_row and focus_names the band hugs the icons and the focused app's name shows under it. Off by default;
+         theme key "square_tiles". -->
+    <bool name="square_tiles">false</bool>
     <!-- The focus highlight glows in the focused app's colour on every tile, as the cinematic shelf does for the
          dock, without cinematic_home. Can also be set with "app_glow": true in a theme's config.json. -->
     <bool name="app_glow">false</bool>

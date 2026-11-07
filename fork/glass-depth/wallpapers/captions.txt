@@ -1,0 +1,12 @@
+01-night.jpg	Night
+02-golden.jpg	Golden volcano
+03-dawn.jpg	Dawn hills
+04-fog.jpg	Misty forest
+05-cloudy.jpg	Cloudy volcano
+06-rain.jpg	Rainy lake
+07-storm.jpg	Storm cloud
+08-valley.jpg	Grose Valley
+09-dusk-beach.jpg	Dusk beach
+10-sunrise.jpg	Tessellated sunrise
+11-sunset-fields.jpg	Vang Vieng sunset
+12-lake.jpg	Mountain lake

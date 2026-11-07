@@ -88,7 +88,7 @@ class SetValueTest(unittest.TestCase):
     def test_a_number_key_refuses_text_and_takes_a_number(self):
         refusal = self.set_key("columns", "six")
         self.assertIn("columns", refusal)
-        self.assertIn("1 to 8", refusal)
+        self.assertIn("1 to 12", refusal)
         self.assertIsNone(self.written())
         self.assertIsNone(self.set_key("columns", "6"))
         self.assertEqual(6, self.written()["columns"])
@@ -101,7 +101,7 @@ class SetValueTest(unittest.TestCase):
 
     def test_a_number_key_refuses_a_value_outside_the_tables_range(self):
         # integer() keeps its own default for a number outside min..max, so set must not write one either.
-        for key, value in (("columns", "9"), ("columns", "0"), ("rows_below_dock", "4"),
+        for key, value in (("columns", "13"), ("columns", "0"), ("rows_below_dock", "4"),
                            ("sky_intensity", "101"), ("clock_wallpaper_dim", "91"), ("dock_opacity", "29")):
             with self.subTest(key=key, value=value):
                 self.config.unlink(missing_ok=True)
@@ -541,8 +541,8 @@ class SetThemeFolderTest(unittest.TestCase):
         for path in sorted(ROOT.glob("*/*/config.json")):
             shipped.setdefault(path.relative_to(ROOT).parts[0], set()).add(path)
         self.assertGreaterEqual(sum(len(v) for v in shipped.values()), 60, "no config.json files were found")
-        self.assertEqual({"examples", "themes"}, set(shipped), "a folder with a config.json that set does not guard")
-        self.assertEqual(set(shipped), set(manage.PROJECT_FOLDERS))
+        self.assertEqual({"examples", "themes", "fork"}, set(shipped) - {"work"}, "a folder with a config.json that set does not guard")
+        self.assertEqual(set(shipped) - {"work"}, set(manage.PROJECT_FOLDERS))   # work/: an owner's own, git-ignored
 
 
     def test_the_page_that_hands_out_set_names_the_refusal(self):

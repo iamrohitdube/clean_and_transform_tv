@@ -1,0 +1,37 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'app.tvweather'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'app.tvweather'
+        minSdk 26
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+        // Where the weather is for. Set your own in ~/.gradle/gradle.properties (outside the repo), e.g.
+        //   tvweather.place=Lisbon
+        //   tvweather.latitude=38.72
+        //   tvweather.longitude=-9.14
+        resValue 'string', 'place', (project.findProperty('tvweather.place') ?: 'London').toString()
+        resValue 'string', 'latitude', (project.findProperty('tvweather.latitude') ?: '51.51').toString()
+        resValue 'string', 'longitude', (project.findProperty('tvweather.longitude') ?: '-0.13').toString()
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            // Sideloaded over ADB like the launcher: signed with the debug key.
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}

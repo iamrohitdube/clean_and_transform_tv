@@ -26,6 +26,12 @@ rule sit on its wanted list until a screenshot arrives.
 
 | Key | Screenshot |
 |---|---|
+| `big_clock` | <img src="../fork/glass-depth/screenshot.jpg" width="320" alt="big_clock on a TV"> |
+| `wallpaper_styles` | <img src="../fork/glass-depth/screenshot.jpg" width="320" alt="wallpaper_styles on a TV"> |
+| `wallpaper_drop` | <img src="../fork/glass-depth/screenshot.jpg" width="320" alt="wallpaper_drop on a TV"> |
+| `weather` | <img src="../fork/glass-depth/screenshot.jpg" width="320" alt="weather on a TV"> |
+| `square_tiles` | <img src="../fork/glass-depth/screenshot.jpg" width="320" alt="square_tiles on a TV"> |
+| `focus_names` | <img src="../fork/glass-depth/screenshot.jpg" width="320" alt="focus_names on a TV"> |
 | `columns` | <img src="../themes/six-columns/screenshot.jpg" width="320" alt="columns on a TV"> |
 | `glass_style` | <img src="switches/glass_style.jpg" width="320" alt="glass_style halo on a TV"> |
 | `sky_intensity` | <img src="sky-sunset.jpg" width="320" alt="sky_intensity on a TV"> |

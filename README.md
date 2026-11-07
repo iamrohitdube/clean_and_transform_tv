@@ -1,3 +1,41 @@
+# Clean & Transform TV
+
+**A fork of [Clean Your TV](https://github.com/Gathin23/cleanyourtv) that gives its launcher the look of
+[couch-tv](https://github.com/Seagey/couch-tv)'s Night home screen.** Clean Your TV strips the ads and bloatware
+from an Android TV or Google TV and replaces the home screen; this fork keeps all of that and adds:
+
+![The glass-depth home on a 1080p Google TV](fork/glass-depth/screenshot.jpg)
+
+- **A big glass clock with depth**: the picture's scenery (mountains, a skyline, a plane) is cut out and drawn over
+  the time, and the digits are filled with a frosted copy of the picture.
+- **The weather**, now and today's high and low, from a tiny add-on ([`addons/tv-weather`](addons/tv-weather/)) that
+  asks Open-Meteo only while Home is on screen. The launcher stays offline.
+- **Pictures that follow the weather and the time of day**, and a **wallpaper picker** on the TV.
+- **A compact app row** of square, full-bleed icons; the chosen app grows, glows and shows its name.
+
+All of it is off by default: one theme, [`fork/glass-depth`](fork/glass-depth/), turns it on.
+
+**Do the same on your TV:** follow [docs/glass-clock-home.md](docs/glass-clock-home.md), or ask your coding agent
+to use the [`glass-clock-home` skill](.claude/skills/glass-clock-home/SKILL.md).
+
+### Credits
+
+This fork builds on Clean Your TV and couch-tv; thank you to both.
+
+- **[Clean Your TV](https://github.com/Gathin23/cleanyourtv)** by Gathin and its contributors (MIT): the launcher,
+  the debloat lists and tools, and everything below this section.
+- **[couch-tv](https://github.com/Seagey/couch-tv)** by Seagey (MIT): the design this recreates (the glass clock,
+  its fonts, the cut-out depth), its scenes and its `make-scene.py` cut-out tool
+  ([licence](licenses/couch-tv-LICENSE.txt)).
+- Fonts [Antonio](https://github.com/googlefonts/antonioFont) and [Inter](https://github.com/rsms/inter), SIL Open
+  Font License ([`licenses/`](licenses/)); pictures credited in
+  [`fork/glass-depth/CREDITS.md`](fork/glass-depth/CREDITS.md); weather data by
+  [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
+
+*What follows is Clean Your TV's own README.*
+
+---
+
 <p align="center">
   <a href="https://cleanyour.tv"><img src="https://raw.githubusercontent.com/Gathin23/cleanyourtv/main/docs/banner.png" alt="CleanYourTV. Your TV, minus the ads. Strip the bloatware from any Android TV or Google TV over Wi-Fi and replace the ad-filled home screen with a clean launcher that looks like an Apple TV. No root, no cable, nothing uninstalled, and a one-line restore." width="800"></a>
 </p>

@@ -18,9 +18,13 @@ import android.content.pm.ChangedPackages;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.LinearGradient;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
@@ -82,6 +86,9 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -183,6 +190,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private boolean advancedEffects;
     private TextView greeting;
     private View clockBlock;
+    /** big_clock's date and clock in the middle of Home; null when big_clock is off (or the layout has none). */
+    private View bigClockBlock;
     private View btnInputs;
     /** config show_inputs_pill: false keeps the Inputs pill hidden even when the TV has inputs. */
     private boolean showInputsPill = true;
@@ -202,6 +211,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** game_day: each team's next game from an add-on, rotating in the race panel; null when the key is off. */
     private GameDay gameDay;
+    /** weather: the add-on's reading at the top left and for the wallpaper's weather groups; null when off. */
+    private Weather weather;
     private View raceBar;
     private LinearLayout racePager;
     private long rotationStart;
@@ -459,6 +470,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         density = getResources().getDisplayMetrics().density;
         // config.xml, overlaid by config.json from a pushed theme (see Config and tools/theme.sh).
         Config cfg = Config.load(this);
+        AppAdapter.squareTiles = cfg.squareTiles;
         homeAppKeys = RemoteKeys.parseAppKeys(cfg.appKeys);
         clockFormat = cfg.clockFormat;
         ClockFormat.apply(getWindow().getDecorView(), clockFormat);
@@ -540,7 +552,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (!cfg.dockTitle) hero.setVisibility(View.GONE);
         greeting = findViewById(R.id.greeting);
         clockBlock = findViewById(R.id.leftBlock);
-        clockRefresh = new ClockRefresh(clockBlock);
+        bigClockBlock = cfg.bigClock ? findViewById(R.id.bigClockBlock) : null;
+        clockStylesJson = cfg.wallpaperStyles;
+        if (bigClockBlock != null) setUpBigClock(bigClockBlock, cfg.wallpaperDrop);
+        // With big_clock the refresh walks the whole screen, so the big clock turns the minute too (Android 11 and older).
+        clockRefresh = new ClockRefresh(bigClockBlock != null ? findViewById(R.id.root) : clockBlock);
         greetingColor = greeting.getCurrentTextColor();
         if (!cfg.showGreeting) greeting.setVisibility(View.GONE);
         // Keep the other header layouts as designed: their extra lines change the block's centre.
@@ -580,6 +596,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         raceBar = findViewById(R.id.raceBar);
         racePager = findViewById(R.id.racePager);
         gameDay = GameDay.create(this, cfg.gameDay, handler, this::updatePanel);
+        weather = Weather.create(this, cfg.weather, handler, this::updateWeather);
         // The rotation runs on the clock that never jumps: setting the TV's time must not stall or stretch a turn.
         rotationStart = SystemClock.elapsedRealtime();
         showStats = cfg.showStats;
@@ -613,6 +630,17 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         grid = findViewById(R.id.grid);
         rtlAppGrid = getResources().getBoolean(R.bool.rtl_app_grid);
         // Mirror only the app grid; the header and other locales keep their own layouts.
+        // square_tiles in a single row: only whole icons inside the band, no sliver of the next one at either end.
+        // Clipped sideways only; above and below the row stay open for the zoom, the glow and the name.
+        if (singleRow && cfg.squareTiles) {
+            grid.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> clipToWholeTiles());
+            grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(@NonNull RecyclerView rv, int dx, int dy) {
+                    clipToWholeTiles();
+                }
+            });
+        }
         // single_row: one span laid out sideways, so the same adapter, glass and dock band serve a scrolling row.
         grid.setLayoutManager(new GridLayoutManager(this, singleRow ? 1 : COLUMNS,
                 singleRow ? RecyclerView.HORIZONTAL : RecyclerView.VERTICAL, false) {
@@ -903,13 +931,18 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                 focusTile(singleRow ? lastFocused : lastFocused % COLUMNS);
                 return true;
             }
-            int firstButton = btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
+            // big_clock's wallpaper button, when shown, is the first of the round buttons, before Inputs.
+            View wallpaperButton = findViewById(R.id.btnWallpaper);
+            int firstButton = wallpaperButton != null && wallpaperButton.getVisibility() == View.VISIBLE ? R.id.btnWallpaper
+                    : btnInputs.getVisibility() == View.VISIBLE ? R.id.btnInputs : firstTopButton().getId();
             int leftButton = rtlMenuBar ? R.id.btnSettings : firstButton;
             int rightButton = rtlMenuBar ? firstButton : R.id.btnSettings;
             if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) return v.getId() == leftButton;
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
         btnInputs.setOnKeyListener(pillKeys);
+        View wallpaperPill = findViewById(R.id.btnWallpaper);
+        if (wallpaperPill != null) wallpaperPill.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnVpn.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
@@ -1132,6 +1165,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
         if (showStats) startStats();
         if (gameDay != null) gameDay.start();
+        if (weather != null) weather.start();
         sky.update();
         wallpaperPlayer.start();
         handler.postDelayed(minuteTick, MINUTE_MS);
@@ -1317,6 +1351,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         startPending = null;   // leaving Home before the network came back: the boot's app stays closed
         stopStats();
         if (gameDay != null) gameDay.stop();
+        if (weather != null) weather.stop();
         handler.removeCallbacks(turnTick);
         if (lamp != null) lamp.stop();
         cancelPendingFocusScroll();
@@ -1377,6 +1412,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         RemoteKeys.release(this);
         cancelHoldOk();
         if (gameDay != null) gameDay.shutdown();
+        if (weather != null) weather.shutdown();
         unregisterReceiver(packageReceiver);
         if (openOnStartOnWake) unregisterReceiver(wakeReceiver);
         wallpaperPlayer.close();
@@ -2508,6 +2544,232 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         }
     }
 
+    /**
+     * big_clock: show the big clock and hide the header's own clock and date. The header keeps its space (INVISIBLE,
+     * not GONE), so the buttons on the right stay where they are. The digits fade from near-white at the top to
+     * mostly see-through at the bottom, so the wallpaper shows through them like frosted glass.
+     */
+    private void setUpBigClock(View block, int wallpaperDrop) {
+        block.setVisibility(View.VISIBLE);
+        findViewById(R.id.leftBlock).setVisibility(View.INVISIBLE);
+        // The buttons move up to the top edge, level with the date, instead of sitting on the hidden clock's line.
+        LinearLayout buttons = findViewById(R.id.topButtons);
+        RelativeLayout.LayoutParams blp = (RelativeLayout.LayoutParams) buttons.getLayoutParams();
+        blp.removeRule(RelativeLayout.ALIGN_BOTTOM);
+        blp.removeRule(RelativeLayout.ALIGN_TOP);
+        blp.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        blp.bottomMargin = 0;
+        buttons.setLayoutParams(blp);
+        // The wallpaper button, first of the round buttons: the picture picker, with Automatic (weather and time).
+        TextView wallpaperButton = findViewById(R.id.btnWallpaper);
+        if (wallpaperButton != null) {
+            wallpaperButton.setVisibility(View.VISIBLE);
+            makeIconOnly(wallpaperButton);
+            wallpaperButton.setOnClickListener(v -> startActivityForResult(
+                    new Intent(this, WallpaperPickerActivity.class), LAUNCHER_SETTINGS_REQUEST));
+        }
+        TextView clock = findViewById(R.id.bigClock);
+        bigClockDrop = WallpaperDepth.dropScale(wallpaperDrop);
+        ImageView foreground = findViewById(R.id.bigClockFg);
+        WallpaperDepth.drop(foreground, wallpaperDrop, getResources().getDisplayMetrics().widthPixels);
+        clock.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> fillBigClock(clock));
+        // The weather, the date and the round buttons share one centre line, measured after every layout (the
+        // weather appears later and its width changes). Translation does not cause a layout, so this cannot loop.
+        View date = findViewById(R.id.bigDate);
+        View weatherRow = findViewById(R.id.weatherBlock);
+        findViewById(R.id.root).getViewTreeObserver().addOnGlobalLayoutListener(() -> {
+            if (buttons.getHeight() == 0) return;
+            int line = centreY(buttons);
+            date.setTranslationY(date.getTranslationY() + line - centreY(date));
+            if (weatherRow.getVisibility() == View.VISIBLE && weatherRow.getHeight() > 0) {
+                weatherRow.setTranslationY(weatherRow.getTranslationY() + line - centreY(weatherRow));
+            }
+        });
+        // The rim: the digits' outline only, a thin light line that keeps them readable over dark scenery.
+        TextView rim = findViewById(R.id.bigClockRim);
+        rim.getPaint().setStyle(Paint.Style.STROKE);
+        rim.getPaint().setStrokeWidth(1.1f * density);
+        // The sheen: light at the top left fading out, and a little light again at the bottom right.
+        TextView sheen = findViewById(R.id.bigClockSheen);
+        sheen.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+            sheen.getPaint().setShader(new LinearGradient(0, 0, (r - l) * 0.36f, b - t,
+                    new int[] {0xB3FFFFFF, 0x00FFFFFF, 0x00FFFFFF, 0x40FFFFFF},
+                    new float[] {0f, 0.38f, 0.70f, 1f}, Shader.TileMode.CLAMP));
+            sheen.invalidate();
+        });
+        // A picture's cut-out goes over the clock and its glass fills the digits; both change with the picture.
+        try {
+            clockStyles = clockStylesJson.isEmpty() ? new JSONObject() : new JSONObject(clockStylesJson);
+        } catch (JSONException e) {
+            clockStyles = new JSONObject();
+        }
+        // The clock's group (shadow, glass, rim, sheen) is what a picture's style moves; left alignment follows the
+        // digits' width, which changes with the minute.
+        View clockGroup = (View) clock.getParent();
+        // A picture's style moves the clock out of its block's bounds (down, or to the left): the full-screen
+        // root must not clip it there.
+        ((ViewGroup) findViewById(R.id.root)).setClipChildren(false);
+        clockGroup.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> placeClock(clock));
+        wallpaperPlayer.setDepthListener((fg, glass, picture) -> {
+            foreground.setImageBitmap(fg);
+            foreground.setVisibility(fg == null ? View.GONE : View.VISIBLE);
+            bigClockGlass = glass;
+            if (picture != null) styleClock(clock, clockStyles.optJSONObject(picture));
+            fillBigClock(clock);
+        });
+    }
+
+    /** wallpaper_styles, read once; each picture's entry is applied when it is shown (styleClock). */
+    private JSONObject clockStyles = new JSONObject();
+    private String clockStylesJson = "";
+    /** The shown picture's clock style: moved down by this many px, scaled, on the left, dark text. */
+    private float clockShiftY, clockScale = 1f;
+    private boolean clockLeft, clockDark;
+
+    /**
+     * A picture's clock style, as couch-tv's scenes have one each: where the clock sits (so the picture's skyline
+     * overlaps the bottom of the digits), how big, centred or on the left, and dark text over a pale sky (fog).
+     * The weather, the date and the round buttons keep their line at the top whatever the picture.
+     */
+    private void styleClock(TextView clock, JSONObject style) {
+        if (style == null) style = new JSONObject();
+        float perPx = getResources().getDisplayMetrics().heightPixels / 1080f;
+        clockShiftY = (float) style.optDouble("clock_y", 0) * perPx;
+        clockScale = (float) Math.max(0.6, Math.min(1.4, style.optDouble("clock_scale", 1)));
+        clockLeft = "left".equals(style.optString("clock_x"));
+        boolean dark = "dark".equals(style.optString("text"));
+        if (dark != clockDark) {
+            clockDark = dark;
+            // couch-tv's fog: smoky glass digits with a light rim, no sheen or shadow; dark date and weather.
+            if (dark) {
+                ColorMatrix smoky = new ColorMatrix();
+                smoky.setSaturation(0.8f);
+                smoky.postConcat(new ColorMatrix(new float[] {
+                        0.5f, 0, 0, 0, -12,
+                        0, 0.5f, 0, 0, -12,
+                        0, 0, 0.5f, 0, -12,
+                        0, 0, 0, 1, 0}));
+                clock.getPaint().setColorFilter(new ColorMatrixColorFilter(smoky));
+            } else {
+                clock.getPaint().setColorFilter(null);
+            }
+            clock.setAlpha(dark ? 0.82f : 0.96f);
+            findViewById(R.id.bigClockSheen).setVisibility(dark ? View.INVISIBLE : View.VISIBLE);
+            findViewById(R.id.bigClockShadow).setVisibility(dark ? View.INVISIBLE : View.VISIBLE);
+            int text = dark ? 0xFF16201D : Color.WHITE;
+            for (int id : new int[] {R.id.bigDate, R.id.weatherTemp}) {
+                TextView t = findViewById(id);
+                t.setTextColor(text);
+                t.setShadowLayer(dark ? 0f : 18f, 0f, dark ? 0f : 2f, 0x40000000);
+            }
+            // the round buttons' icons too, which white would lose against a pale sky
+            ViewGroup buttons = findViewById(R.id.topButtons);
+            for (int i = 0; i < buttons.getChildCount(); i++) {
+                View b = buttons.getChildAt(i);
+                if (b instanceof TextView) {
+                    ((TextView) b).setCompoundDrawableTintList(dark ? ColorStateList.valueOf(0xFF16201D) : null);
+                }
+            }
+            TextView label = findViewById(R.id.weatherLabel);
+            label.setTextColor(dark ? 0xB816201D : 0xC7FFFFFF);
+            label.setShadowLayer(dark ? 0f : 6f, 0f, 0f, 0x66000000);
+        }
+        placeClock(clock);
+    }
+
+    /** Moves and scales the clock's group for the shown picture's style; on the left it lines up with the weather. */
+    private void placeClock(TextView clock) {
+        View group = (View) clock.getParent();
+        if (group.getWidth() == 0) return;
+        group.setPivotY(0f);
+        group.setPivotX(clockLeft ? 0f : group.getWidth() / 2f);
+        group.setScaleX(clockScale);
+        group.setScaleY(clockScale);
+        group.setTranslationY(clockShiftY);
+        float shiftX = 0f;
+        if (clockLeft) {
+            View block = (View) group.getParent();
+            shiftX = 60 * density - (block.getLeft() + group.getLeft());
+        }
+        group.setTranslationX(shiftX);
+        clock.post(() -> fillBigClock(clock));
+    }
+
+    /**
+     * square_tiles' single row: a tile the row's edge cuts fades by how much of it is out of view, so a sliver of
+     * the next icon never shows at either end of the band, and a tile scrolling in fades in as it arrives. The
+     * band itself is left whole (it is drawn by the row, so clipping the row would cut it too).
+     */
+    private void clipToWholeTiles() {
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            View item = grid.getChildAt(i);
+            View card = item.findViewById(R.id.card);
+            if (card == null || card.getWidth() == 0) continue;
+            int cl = item.getLeft() + Math.round(item.getTranslationX()) + card.getLeft();
+            int cr = cl + card.getWidth();
+            float shown = (Math.min(cr, grid.getWidth()) - Math.max(cl, 0)) / (float) card.getWidth();
+            // under 60% in view: hidden; from there to whole: fading in
+            item.setAlpha(Math.max(0f, Math.min(1f, (shown - 0.6f) / 0.4f)));
+        }
+    }
+
+    /** A view's vertical centre on screen, its translation included. */
+    private static int centreY(View v) {
+        int[] at = new int[2];
+        v.getLocationOnScreen(at);
+        return at[1] + v.getHeight() / 2;
+    }
+
+    /** The weather add-on has a new reading (or none): the top-left line and the wallpaper's weather group. */
+    private void updateWeather() {
+        Weather.Now now = weather == null ? null : weather.now();
+        View block = findViewById(R.id.weatherBlock);
+        if (now == null) {
+            block.setVisibility(View.GONE);
+            wallpaperPlayer.setWeather(null);
+            return;
+        }
+        ((TextView) findViewById(R.id.weatherIcon)).setText(now.symbol());
+        ((TextView) findViewById(R.id.weatherTemp)).setText(now.tempC + "°");
+        String label = now.line();
+        ((TextView) findViewById(R.id.weatherLabel)).setText(label);
+        block.setContentDescription(now.tempC + "° " + label);
+        block.setVisibility(View.VISIBLE);
+        wallpaperPlayer.setWeather(now.condition);
+    }
+
+    /** The shown picture's glass copy for big_clock's digits, or null for the plain fading white. */
+    private Bitmap bigClockGlass;
+    /** wallpaper_drop's zoom, which the glass follows so it stays lined up with the picture. */
+    private float bigClockDrop = 1f;
+
+    /**
+     * Fills the big clock's digits: with the picture's glass copy lined up with the screen, so each digit shows the
+     * frosted scene right behind it, or without one a white that fades towards the bottom.
+     */
+    private void fillBigClock(TextView clock) {
+        if (clock.getHeight() == 0) return;
+        Bitmap glass = bigClockGlass;
+        if (glass != null && !glass.isRecycled()) {
+            View screen = findViewById(R.id.root);
+            int[] at = new int[2], origin = new int[2];
+            clock.getLocationInWindow(at);
+            screen.getLocationInWindow(origin);
+            Matrix matrix = new Matrix();
+            matrix.setScale(screen.getWidth() / (float) glass.getWidth(), screen.getHeight() / (float) glass.getHeight());
+            matrix.postScale(bigClockDrop, bigClockDrop, screen.getWidth() / 2f, 0f);
+            matrix.postTranslate(origin[0] - at[0], origin[1] - at[1]);
+            matrix.postScale(1f / clockScale, 1f / clockScale);
+            BitmapShader shader = new BitmapShader(glass, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+            shader.setLocalMatrix(matrix);
+            clock.getPaint().setShader(shader);
+        } else {
+            clock.getPaint().setShader(new LinearGradient(0, 0, 0, clock.getHeight(),
+                    0xFFFFFFFF, 0x80FFFFFF, Shader.TileMode.CLAMP));
+        }
+        clock.invalidate();
+    }
+
     /** Centre the one-row header when the greeting and extra date lines are absent (#2265). */
     private void centerCompactHeader() {
         LinearLayout clockRow = (LinearLayout) findViewById(R.id.clock).getParent();
@@ -2706,7 +2968,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
 
     private void updateClockVisibility() {
         boolean valid = System.currentTimeMillis() >= TIME_VALID_AFTER_MS;
-        clockBlock.setVisibility(valid ? View.VISIBLE : View.INVISIBLE);
+        if (bigClockBlock != null) {
+            // big_clock: the header's clock stays hidden; the big one waits for a valid time like it would.
+            clockBlock.setVisibility(View.INVISIBLE);
+            bigClockBlock.setVisibility(valid ? View.VISIBLE : View.INVISIBLE);
+        } else {
+            clockBlock.setVisibility(valid ? View.VISIBLE : View.INVISIBLE);
+        }
         handler.removeCallbacks(clockCheck);
         if (valid) {
             updateGreeting();

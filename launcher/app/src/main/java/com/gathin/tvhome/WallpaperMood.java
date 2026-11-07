@@ -17,6 +17,9 @@ import java.util.Set;
 final class WallpaperMood {
     static final String MORNING = "morning", EVENING = "evening", NIGHT = "night";
     static final String[] ALL = {MORNING, EVENING, NIGHT};
+    /** Weather groups (the weather add-on's conditions): in daylight they win over the time of day. Clear has none. */
+    static final String CLOUDY = "cloudy", RAIN = "rain", FOG = "fog";
+    static final String[] WEATHER = {CLOUDY, RAIN, FOG};
     /** Sunrise and sunset in minutes of the day, without a place (or where the sun does not rise or set that day). */
     static final int DEFAULT_SUNRISE = 7 * 60, DEFAULT_SUNSET = 18 * 60 + 30;
     private static final int NOON = 12 * 60;
@@ -44,6 +47,15 @@ final class WallpaperMood {
             // not a number: the defaults
         }
         return times != null ? times : new int[]{DEFAULT_SUNRISE, DEFAULT_SUNSET};
+    }
+
+    /**
+     * The group to show: at night the night group whatever the weather; in daylight the weather's group when the
+     * collection has one (cloudy, rain, fog), else the time of day's, so a clear day keeps morning and evening.
+     */
+    static String pick(String timeOfDay, String weather, Map<String, Set<String>> groups) {
+        if (!NIGHT.equals(timeOfDay) && weather != null && groups.containsKey(weather)) return weather;
+        return timeOfDay;
     }
 
     /** The pictures in the mood's group, in the collection's order; all of them when the group has none. */

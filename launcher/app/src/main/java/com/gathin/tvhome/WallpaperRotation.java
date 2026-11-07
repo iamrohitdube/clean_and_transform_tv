@@ -25,6 +25,8 @@ final class WallpaperRotation {
         Arrays.sort(entries, Comparator.comparing(File::getName));
         for (File entry : entries) {
             String name = entry.getName().toLowerCase(Locale.ROOT);
+            // big_clock's companions of a picture (NAME-fg.webp, NAME-glass.jpg) are not pictures of their own.
+            if (WallpaperDepth.isCompanion(name)) continue;
             if (entry.isFile() && entry.length() > 0 && entry.length() <= 10 * 1024 * 1024
                     && (name.endsWith(".jpg") || name.endsWith(".jpeg")
                     || name.endsWith(".png") || name.endsWith(".webp"))) {

@@ -104,6 +104,170 @@
             android:visibility="gone" />
     </LinearLayout>
 
+    <!-- big_clock: the date and a large see-through clock across the middle, over the wallpaper and under the
+         header buttons and the dock. MainActivity gives the clock its fading fill; gone unless big_clock is on. -->
+    <LinearLayout
+        android:id="@+id/bigClockBlock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="22dp"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
+        android:focusable="false"
+        android:importantForAccessibility="no"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:visibility="gone">
+
+        <TextClock
+            android:id="@+id/bigDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:format12Hour="EEEE d MMMM"
+            android:format24Hour="EEEE d MMMM"
+            android:singleLine="true"
+            android:textColor="#FFFFFFFF"
+            android:textSize="19sp"
+            android:fontFamily="@font/inter_medium"
+            android:letterSpacing="-0.01"
+            android:shadowColor="#40000000"
+            android:shadowDy="2"
+            android:shadowRadius="18" />
+
+        <!-- The glass clock as couch-tv's Night look draws it, four copies in one place: a very soft shadow, the
+             frosted scene as a slightly see-through fill, a thin light rim, and a faint diagonal sheen. -->
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="-10dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
+
+            <TextClock
+                android:id="@+id/bigClockShadow"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="h:mm"
+                android:format24Hour="HH:mm"
+                android:singleLine="true"
+                android:textColor="#14000000"
+                android:textSize="200sp"
+                android:fontFamily="@font/antonio_light"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:shadowColor="#2E000000"
+                android:shadowDy="5"
+                android:shadowRadius="20" />
+
+            <TextClock
+                android:id="@+id/bigClock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:alpha="0.96"
+                android:format12Hour="h:mm"
+                android:format24Hour="HH:mm"
+                android:singleLine="true"
+                android:textColor="#FFFFFFFF"
+                android:textSize="200sp"
+                android:fontFamily="@font/antonio_light"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+
+            <TextClock
+                android:id="@+id/bigClockRim"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="h:mm"
+                android:format24Hour="HH:mm"
+                android:singleLine="true"
+                android:textColor="#D9FFFFFF"
+                android:textSize="200sp"
+                android:fontFamily="@font/antonio_light"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+
+            <TextClock
+                android:id="@+id/bigClockSheen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:format12Hour="h:mm"
+                android:format24Hour="HH:mm"
+                android:singleLine="true"
+                android:textColor="#FFFFFFFF"
+                android:textSize="200sp"
+                android:fontFamily="@font/antonio_light"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- big_clock depth: the wallpaper's cut-out (NAME-fg.webp, sky transparent) over the big clock, so the
+         skyline overlaps its digits. Set by WallpaperPlayer; gone when the picture has no cut-out. -->
+    <ImageView
+        android:id="@+id/bigClockFg"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:focusable="false"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <!-- weather: the add-on's temperature and condition at the top left, level with big_clock's date and the round
+         buttons. Gone until the add-on has a reading. -->
+    <LinearLayout
+        android:id="@+id/weatherBlock"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|left"
+        android:layout_marginStart="60dp"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:focusable="false"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/weatherIcon"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:textSize="30sp"
+            android:includeFontPadding="false"
+            android:importantForAccessibility="no" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/weatherTemp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:textColor="#F2FFFFFF"
+                android:textSize="26sp"
+                android:fontFamily="@font/inter_medium"
+                android:letterSpacing="-0.01"
+                android:includeFontPadding="false"
+                android:shadowColor="#66000000"
+                android:shadowRadius="8" />
+
+            <TextView
+                android:id="@+id/weatherLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="3dp"
+                android:singleLine="true"
+                android:textColor="#C7FFFFFF"
+                android:textSize="13sp"
+                android:fontFamily="@font/inter_medium"
+                android:shadowColor="#66000000"
+                android:shadowRadius="6" />
+        </LinearLayout>
+    </LinearLayout>
+
     <!-- Cinematic top shelf: darkens the edge behind the shelf and the lower half, so the text and the
          dock stay readable over the artwork. -->
     <View
@@ -386,6 +550,15 @@
                     android:text="@string/wifi"
                     android:drawableStart="@drawable/ic_wifi"
                     android:nextFocusDown="@+id/grid" />
+
+                <!-- big_clock: opens the wallpaper picker (WallpaperPickerActivity). Gone otherwise. -->
+                <TextView
+                    android:id="@+id/btnWallpaper"
+                    style="@style/TopButton"
+                    android:text="@string/wallpaper_label"
+                    android:drawableStart="@drawable/ic_wallpaper"
+                    android:nextFocusDown="@+id/grid"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/btnInputs"
